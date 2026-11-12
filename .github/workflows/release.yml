@@ -1,4 +1,4 @@
-name: Release and publish to AUR
+name: Release
 on:
   push:
     branches: [main]
@@ -42,14 +42,5 @@ jobs:
           if ! gh release view "$tag" >/dev/null 2>&1; then
             gh release create "$tag" --target "$GITHUB_SHA" --title "Fretwave $VERSION" --generate-notes --draft
           fi
-          gh release upload "$tag" work/release/fretwave-"$VERSION".tar.gz work/release/*.pkg.tar.zst work/release/PKGBUILD work/release/.SRCINFO --clobber
+          gh release upload "$tag" work/release/fretwave-"$VERSION".tar.gz work/release/*.pkg.tar.zst work/release/PKGBUILD --clobber
           gh release edit "$tag" --draft=false
-      - name: Publish AUR recipe
-        if: ${{ vars.AUR_ENABLED == 'true' }}
-        shell: bash
-        env:
-          AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-        run: bash scripts/publish-aur.sh work/release "$VERSION"
-      - name: AUR setup reminder
-        if: ${{ vars.AUR_ENABLED != 'true' }}
-        run: echo 'AUR publication is pending account setup. See docs/releases.md.' >> "$GITHUB_STEP_SUMMARY"

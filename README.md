@@ -69,5 +69,4 @@ Successful pushes to `main` automatically publish a tested release with a source
 archive and an x86_64 Arch Linux package. Download them from
 [GitHub Releases](https://github.com/codella/fretwave/releases).
 
-Automatic AUR publication is prepared and awaits the maintainer's one-time account
-setup. See [release automation](docs/releases.md) for setup and recovery steps.
+See [release automation](docs/releases.md) for details.

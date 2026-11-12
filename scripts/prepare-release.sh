@@ -7,5 +7,4 @@ mkdir -p "$out"
 git archive --format=tar --prefix="fretwave-$version/" HEAD | gzip -n > "$out/fretwave-$version.tar.gz"
 checksum=$(sha256sum "$out/fretwave-$version.tar.gz" | cut -d' ' -f1)
 sed -e "s/@VERSION@/$version/g" -e "s/@SHA256@/$checksum/g" \
-  packaging/aur/PKGBUILD.in > "$out/PKGBUILD"
-(cd "$out" && makepkg --printsrcinfo > .SRCINFO)
+  packaging/arch/PKGBUILD.in > "$out/PKGBUILD"
