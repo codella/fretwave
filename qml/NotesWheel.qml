@@ -14,7 +14,7 @@ ColumnLayout {
     signal noteRequested(int midi)
     signal chordRequested(var frets)
     property int selectedNote: 9
-    property int chordType: -1
+    property int chordType: chordSelector.currentIndex - (fifths ? 0 : 1)
     readonly property var labels: ["C", "C♯ / D♭", "D", "D♯ / E♭", "E", "F", "F♯ / G♭", "G", "G♯ / A♭", "A", "A♯ / B♭", "B"]
     readonly property var selectedChord: chordLibrary.browse(selectedNote, chordType < 0 ? 0 : chordType)[0]
     function noteAt(position) { return (9 + position * (fifths ? 7 : 1)) % 12 }
@@ -26,14 +26,15 @@ ColumnLayout {
         Layout.fillWidth: true
         implicitHeight: 40
         RowLayout {
-        anchors.centerIn: parent
-        QQC2.Label { text: "Show" }
-        QQC2.ComboBox {
-            model: ["Notes only", "Major chord", "Minor chord"]
-            Accessible.name: "Highlight chord tones"
-            onCurrentIndexChanged: wheel.chordType = currentIndex - 1
+            anchors.centerIn: parent
+            QQC2.Label { text: "Show" }
+            QQC2.ComboBox {
+                id: chordSelector
+                model: wheel.fifths ? ["Major chord", "Minor chord"]
+                    : ["Notes only", "Major chord", "Minor chord"]
+                Accessible.name: "Highlight chord tones"
+            }
         }
-    }
         QQC2.ToolButton {
             id: muteButton
             objectName: "wheelMuteButton"
