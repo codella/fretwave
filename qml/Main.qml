@@ -18,6 +18,11 @@ Kirigami.ApplicationWindow {
     title: "Fretwave"
     pageStack.globalToolBar.style: Kirigami.ApplicationHeaderStyle.None
     property bool focusMode: false
+    property bool wheelMuted: false
+    function toggleWheelMute() {
+        wheelMuted = !wheelMuted
+        if (wheelMuted) audioEngine.stop()
+    }
     Shortcut { sequence: "Escape"; enabled: root.focusMode; onActivated: root.focusMode = false }
     property var results: []
     property var selected: null
@@ -396,8 +401,19 @@ Kirigami.ApplicationWindow {
                 }
             }
                 }
-                NotesWheel { objectName: "chromaticWheel" }
-                NotesWheel { objectName: "fifthsWheel"; fifths: true }
+                NotesWheel {
+                    objectName: "chromaticWheel"
+                    muted: root.wheelMuted
+                    onMuteToggled: root.toggleWheelMute()
+                    onNoteRequested: midi => audioEngine.playNote(midi)
+                }
+                NotesWheel {
+                    objectName: "fifthsWheel"
+                    fifths: true
+                    muted: root.wheelMuted
+                    onMuteToggled: root.toggleWheelMute()
+                    onNoteRequested: midi => audioEngine.playNote(midi)
+                }
             }
         }
     }
