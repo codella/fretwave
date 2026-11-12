@@ -45,17 +45,28 @@ int main(int argc, char **argv) {
         QTimer::singleShot(200, &app, [&] {
             audioEngine.playNote(45);
             QTimer::singleShot(400, &app, [&] {
-                if (!audioEngine.playing() || !audioEngine.error().isEmpty()) {
+                auto button = engine.rootObjects().isEmpty() ? nullptr
+                    : engine.rootObjects().first()->findChild<QObject *>("playChordButton");
+                if (!audioEngine.playing() || audioEngine.chordPlaying() || !audioEngine.error().isEmpty()
+                    || !button || button->property("enabled").toBool()) {
                     fprintf(stderr, "Note playback failed: %s\n", qPrintable(audioEngine.error()));
                     app.exit(3); return;
                 }
                 audioEngine.playChord({-1,3,2,0,1,0});
                 QTimer::singleShot(500, &app, [&] {
-                    bool ok = audioEngine.playing() && audioEngine.error().isEmpty();
+                    auto button = engine.rootObjects().first()->findChild<QObject *>("playChordButton");
+                    bool ok = audioEngine.playing() && audioEngine.chordPlaying() && audioEngine.error().isEmpty()
+                        && button && button->property("enabled").toBool();
+                    auto fretArea = engine.rootObjects().first()->findChild<QObject *>("fretPlaybackArea");
+                    ok &= fretArea && fretArea->property("acceptedButtons").toInt() == int(Qt::NoButton);
+                    audioEngine.playNote(64);
+                    ok &= !audioEngine.chordPlaying();
+                    ok &= fretArea && fretArea->property("acceptedButtons").toInt() == int(Qt::LeftButton);
                     audioEngine.setVolume(0);
                     ok &= audioEngine.volume() == 0;
                     audioEngine.stop();
-                    ok &= !audioEngine.playing();
+                    ok &= !audioEngine.playing() && !audioEngine.chordPlaying();
+                    ok &= button && button->property("enabled").toBool();
                     fprintf(stderr, "%s\n", ok ? "Note/chord output, mute and stop verified on the audio device." : "Audio output test failed.");
                     app.exit(ok ? 0 : 3);
                 });

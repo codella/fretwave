@@ -38,9 +38,10 @@ void AudioEngine::stop() {
     setPlaying(false);
 }
 void AudioEngine::playNote(int midi) { play({midi}); }
-void AudioEngine::playChord(const QVariantList &frets) { play(Synth::chordNotes(frets)); }
-void AudioEngine::play(const QList<int> &notes) {
+void AudioEngine::playChord(const QVariantList &frets) { play(Synth::chordNotes(frets), true); }
+void AudioEngine::play(const QList<int> &notes, bool chord) {
     stop();
+    m_chordPlayback = chord;
     setError({});
     if (notes.isEmpty()) return;
     const auto device = QMediaDevices::defaultAudioOutput();

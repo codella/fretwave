@@ -202,11 +202,13 @@ Item {
     }
     MouseArea {
         id: hoverArea
+        objectName: "fretPlaybackArea"
         anchors.fill: parent
         hoverEnabled: true
-        acceptedButtons: Qt.LeftButton
-        cursorShape: diagram.midiAt(mouseX, mouseY) >= 0 ? Qt.PointingHandCursor : Qt.ArrowCursor
+        acceptedButtons: audioEngine.chordPlaying ? Qt.NoButton : Qt.LeftButton
+        cursorShape: !audioEngine.chordPlaying && diagram.midiAt(mouseX, mouseY) >= 0 ? Qt.PointingHandCursor : Qt.ArrowCursor
         onClicked: mouse => {
+            if (audioEngine.chordPlaying) return
             const midi = diagram.midiAt(mouse.x, mouse.y)
             if (midi >= 0) audioEngine.playNote(midi)
         }

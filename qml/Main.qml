@@ -271,12 +271,13 @@ Kirigami.ApplicationWindow {
                         height: 40
                         padding: 11
                         hoverEnabled: true
-                        text: audioEngine.playing ? "Stop sound" : "Play chord"
-                        enabled: root.selected !== null
+                        text: audioEngine.chordPlaying ? "Stop chord" : "Play chord"
+                        enabled: root.selected !== null && (!audioEngine.playing || audioEngine.chordPlaying)
+                        opacity: enabled ? 1 : 0.4
                         Accessible.name: text
-                        onClicked: audioEngine.playing ? audioEngine.stop() : audioEngine.playChord(root.selected.frets)
+                        onClicked: audioEngine.chordPlaying ? audioEngine.stop() : audioEngine.playChord(root.selected.frets)
                         contentItem: Canvas {
-                            property bool playing: audioEngine.playing
+                            property bool playing: audioEngine.chordPlaying
                             property color ink: playing ? Kirigami.Theme.highlightColor : Kirigami.Theme.textColor
                             onPlayingChanged: requestPaint()
                             onInkChanged: requestPaint()
@@ -296,7 +297,7 @@ Kirigami.ApplicationWindow {
                         background: Rectangle {
                             radius: 10
                             color: Qt.alpha(Kirigami.Theme.highlightColor,
-                                playButton.down ? 0.22 : playButton.hovered ? 0.16 : audioEngine.playing ? 0.10 : 0.04)
+                                playButton.down ? 0.22 : playButton.hovered ? 0.16 : audioEngine.chordPlaying ? 0.10 : 0.04)
                             border.width: playButton.visualFocus ? 2 : 1
                             border.color: playButton.visualFocus ? Kirigami.Theme.highlightColor : Qt.alpha(Kirigami.Theme.textColor, 0.10)
                             Behavior on color { ColorAnimation { duration: 120 } }
