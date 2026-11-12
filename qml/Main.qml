@@ -18,7 +18,7 @@ Kirigami.ApplicationWindow {
     title: "Fretwave"
     pageStack.globalToolBar.style: Kirigami.ApplicationHeaderStyle.None
     property bool focusMode: false
-    property bool wheelMuted: false
+    property bool wheelMuted: true
     function toggleWheelMute() {
         wheelMuted = !wheelMuted
         if (wheelMuted) audioEngine.stop()

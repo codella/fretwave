@@ -17,7 +17,7 @@ A native Qt6 / KDE Kirigami guitar chord browser written in C++ and QML, with of
 - System palette support, keyboard-accessible controls and accessible diagram descriptions.
 - Bundled Oswald display lettering and Lato body text, with Noto Sans available for symbol fallback. All fonts use the SIL Open Font License; see `fonts/Oswald-OFL.txt`, `fonts/Lato-OFL.txt`, and `fonts/OFL.txt`. Font sources: https://github.com/google/fonts/tree/main/ofl/oswald and https://github.com/google/fonts/tree/main/ofl/lato.
 - Offline plucked-string synthesis: click any string/fret or open marker to hear its note. Play chord sounds the current fingering with a gentle strum, excluding muted strings. Playback uses a moderate default level; adjust loudness with your system volume. A new sound replaces the previous sound, and Stop sound cuts playback.
-- Click the chromatic wheel to hear a single note (C4–B4). The circle of fifths plays a guitar chord: major by default, or minor with “Minor chord” selected. The top-right speaker button mutes or unmutes previews on both wheels; note selection still works while muted.
+- Click the chromatic wheel to hear a single note (C4–B4). The circle of fifths plays a guitar chord: major by default, or minor with “Minor chord” selected. Both wheels start muted. The top-right speaker button mutes or unmutes previews on both wheels; note selection still works while muted.
 - Entirely offline, with no accounts or network services.
 
 ## Build and run

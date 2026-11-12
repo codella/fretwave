@@ -9,7 +9,7 @@ import org.kde.kirigami as Kirigami
 ColumnLayout {
     id: wheel
     property bool fifths: false
-    property bool muted: false
+    property bool muted: true
     signal muteToggled()
     signal noteRequested(int midi)
     signal chordRequested(var frets)
