@@ -12,6 +12,7 @@ ColumnLayout {
     property bool muted: false
     signal muteToggled()
     signal noteRequested(int midi)
+    signal chordRequested(var frets)
     property int selectedNote: 9
     property int chordType: -1
     readonly property var labels: ["C", "C♯ / D♭", "D", "D♯ / E♭", "E", "F", "F♯ / G♭", "G", "G♯ / A♭", "A", "A♯ / B♭", "B"]
@@ -42,7 +43,7 @@ ColumnLayout {
             height: 40
             padding: 10
             hoverEnabled: true
-            text: wheel.muted ? "Unmute wheel notes" : "Mute wheel notes"
+            text: wheel.muted ? "Unmute wheel playback" : "Mute wheel playback"
             Accessible.name: text
             onClicked: wheel.muteToggled()
             contentItem: Canvas {
@@ -138,7 +139,10 @@ ColumnLayout {
                     Accessible.name: text + (note === wheel.selectedNote ? ", selected root" : "")
                     onClicked: {
                         wheel.selectedNote = note
-                        if (!wheel.muted) wheel.noteRequested(60 + note)
+                        if (!wheel.muted) {
+                            if (wheel.fifths) wheel.chordRequested(wheel.selectedChord.frets)
+                            else wheel.noteRequested(60 + note)
+                        }
                     }
                     background: Rectangle {
                         radius: 24

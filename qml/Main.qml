@@ -411,6 +411,7 @@ Kirigami.ApplicationWindow {
                 NotesWheel {
                     objectName: "fifthsWheel"
                     fifths: true
+                    onChordRequested: frets => audioEngine.playChord(frets)
                     muted: root.wheelMuted
                     onMuteToggled: root.toggleWheelMute()
                     onNoteRequested: midi => audioEngine.playNote(midi)
