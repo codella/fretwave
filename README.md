@@ -40,6 +40,36 @@ cmake --install build --prefix "$HOME/.local"
 
 Ensure `~/.local/bin` is in your desktop session's PATH so the application launcher can find the executable. The installation includes a desktop entry.
 
+## Uninstall
+
+For a source installation, keep the build directory: CMake records installed files
+in `install_manifest.txt`. Preview removal, then uninstall:
+
+```sh
+./uninstall.sh --dry-run
+./uninstall.sh
+```
+
+The defaults match the instructions above: `build/` and `~/.local`. If you used a
+different build directory or installation prefix, pass both explicitly:
+
+```sh
+./uninstall.sh --build-dir work/release-build --prefix "$HOME/.local"
+```
+
+The script removes only recognized Fretwave files listed in that build's installation
+record, leaves shared directories alone, and safely skips already-removed files.
+It refuses mismatched paths. Keep a separate build directory for each installation
+prefix, since another CMake install overwrites that build's record. A system-wide
+source installation may require running the script with `sudo` and an explicit
+`--prefix /usr/local`.
+
+If you installed the Arch package, use the package manager instead:
+
+```sh
+sudo pacman -R fretwave
+```
+
 ## Reading the diagrams
 
 Strings run from low E on the left to high e on the right in standard E–A–D–G–B–e tuning. A circle means open and a cross means muted. Numbers are fingers: 1 index, 2 middle, 3 ring, 4 little. A thick connecting line shows a barre. The fret label identifies the first displayed fret.

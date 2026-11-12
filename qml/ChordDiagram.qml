@@ -117,27 +117,42 @@ Item {
                 c.strokeStyle = metal; c.lineWidth = 5; c.lineCap = "round"
                 c.beginPath(); c.moveTo(left - 6, y); c.lineTo(right + 6, y); c.stroke()
             }
+            const gauges = [3.8, 3.1, 2.5, 1.8, 1.3, 0.9]
             if (start === 1) {
                 const ivory = c.createLinearGradient(0, top - 5, 0, top + 5)
                 ivory.addColorStop(0, "#fffdf1"); ivory.addColorStop(0.5, "#eee5ca"); ivory.addColorStop(1, "#c4b797")
                 c.fillStyle = ivory; c.strokeStyle = "#a99c7f"; c.lineWidth = 1
                 c.fillRect(left - 8, top - 5, right - left + 16, 10)
                 c.strokeRect(left - 8, top - 5, right - left + 16, 10)
+                // Narrow slots seat each string in the nut, with a softly shaded edge.
+                for (let s = 0; s < 6; ++s) {
+                    const x = left + s * dx
+                    c.strokeStyle = "#9c9077"; c.lineWidth = gauges[s] + 1.2
+                    c.lineCap = "butt"
+                    c.beginPath(); c.moveTo(x, top - 5); c.lineTo(x, top + 5); c.stroke()
+                }
             }
 
-            const gauges = [3.8, 3.1, 2.5, 1.8, 1.3, 0.9]
+            // Continue past the nut toward the headstock instead of ending inside it.
+            const stringTop = start === 1 ? top - 11 : top - 4
             for (let s = 0; s < 6; ++s) {
                 const x = left + s * dx, gauge = gauges[s]
                 const steel = c.createLinearGradient(x - gauge / 2, 0, x + gauge / 2, 0)
                 steel.addColorStop(0, "#626d76"); steel.addColorStop(0.45, "#edf1f3"); steel.addColorStop(1, "#77838d")
                 c.strokeStyle = steel; c.lineWidth = gauge; c.lineCap = "butt"
-                c.beginPath(); c.moveTo(x, top - 4); c.lineTo(x, bottom + 3); c.stroke()
+                c.beginPath(); c.moveTo(x, stringTop); c.lineTo(x, bottom + 3); c.stroke()
                 // Fine winding on the three bass strings.
                 if (s < 3) {
                     c.strokeStyle = "#808b94"; c.lineWidth = 0.5
-                    for (let y = top + 3; y < bottom; y += 4) {
+                    for (let y = stringTop + 3; y < bottom; y += 4) {
                         c.beginPath(); c.moveTo(x - gauge / 2, y + 1); c.lineTo(x + gauge / 2, y); c.stroke()
                     }
+                }
+                if (start === 1) {
+                    // The recessed part catches less light than the free string.
+                    c.strokeStyle = "rgba(104, 91, 68, 0.28)"
+                    c.lineWidth = gauge
+                    c.beginPath(); c.moveTo(x, top - 5); c.lineTo(x, top + 4); c.stroke()
                 }
                 c.fillStyle = diagram.ink
                 c.save()
