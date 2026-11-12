@@ -1,0 +1,8 @@
+/build*/
+/work/
+/outputs/
+/.qt/
+/.agents/
+/.aws/
+/.codex/
+*.user

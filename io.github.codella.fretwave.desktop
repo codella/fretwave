@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Fretwave
+Comment=Explore and play guitar chords
+Exec=fretwave
+Icon=io.github.codella.fretwave
+Terminal=false
+Categories=AudioVideo;Music;Education;
+Keywords=guitar;chords;

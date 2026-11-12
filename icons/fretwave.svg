@@ -1,0 +1,16 @@
+<!-- SPDX-License-Identifier: GPL-3.0-only -->
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="pick" x1="0" y1="0" x2="0.8" y2="1">
+      <stop stop-color="#34444c"/><stop offset="1" stop-color="#15242b"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0.8" y2="1">
+      <stop stop-color="#a7f2dc"/><stop offset="1" stop-color="#3b9f96"/>
+    </linearGradient>
+  </defs>
+  <path d="M128 17C70 17 25 29 25 69c0 48 57 130 90 167 7 8 19 8 26 0 33-37 90-119 90-167 0-40-45-52-103-52Z"
+        fill="url(#pick)" stroke="url(#rim)" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M52 64c4-21 35-28 76-28 30 0 54 4 67 14" fill="none" stroke="#e0fff5" stroke-opacity=".17" stroke-width="3" stroke-linecap="round"/>
+  <path d="M62 112h20c12 0 14-25 25-25s13 50 25 50 14-50 26-50 12 25 24 25h12"
+        fill="none" stroke="url(#rim)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
