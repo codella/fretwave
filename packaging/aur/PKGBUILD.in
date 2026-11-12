@@ -1,0 +1,32 @@
+# Maintainer: Mauro Codella <mauro.codella@pm.me>
+pkgname=fretwave
+pkgver=@VERSION@
+pkgrel=1
+pkgdesc='Explore and play guitar chords with Qt6 and KDE Kirigami'
+arch=('x86_64')
+url='https://github.com/codella/fretwave'
+license=('GPL-3.0-only' 'OFL-1.1')
+depends=('glibc' 'gcc-libs' 'qt6-base' 'qt6-declarative' 'qt6-multimedia' 'kirigami')
+makedepends=('cmake' 'ninja')
+optdepends=('qqc2-desktop-style: Plasma desktop styling' 'breeze-icons: Plasma icons')
+source=("$pkgname-$pkgver.tar.gz::$url/releases/download/v$pkgver/$pkgname-$pkgver.tar.gz")
+sha256sums=('@SHA256@')
+
+build() {
+  cmake -S "$pkgname-$pkgver" -B build -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr \
+    -DFRETWAVE_VERSION="$pkgver" -DBUILD_TESTING=ON
+  cmake --build build
+}
+
+check() {
+  QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
+    ctest --test-dir build --output-on-failure
+}
+
+package() {
+  DESTDIR="$pkgdir" cmake --install build
+  install -Dm644 "$srcdir/$pkgname-$pkgver/fonts/Oswald-OFL.txt" "$pkgdir/usr/share/licenses/$pkgname/Oswald-OFL.txt"
+  install -Dm644 "$srcdir/$pkgname-$pkgver/fonts/Lato-OFL.txt" "$pkgdir/usr/share/licenses/$pkgname/Lato-OFL.txt"
+  install -Dm644 "$srcdir/$pkgname-$pkgver/fonts/OFL.txt" "$pkgdir/usr/share/licenses/$pkgname/Noto-OFL.txt"
+}

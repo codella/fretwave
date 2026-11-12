@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 cmake_minimum_required(VERSION 3.21)
-project(Fretwave VERSION 0.1.0 LANGUAGES CXX)
+set(FRETWAVE_VERSION "0.1.0" CACHE STRING "Fretwave release version")
+project(Fretwave VERSION ${FRETWAVE_VERSION} LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Widgets Qml Quick QuickControls2 Multimedia)

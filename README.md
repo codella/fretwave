@@ -62,3 +62,12 @@ Copyright © 2026 Mauro Codella.
 
 Fretwave source code and original artwork are licensed under **GPL-3.0-only**. See [LICENSE](LICENSE).
 Bundled fonts retain their separate SIL Open Font License terms. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for font notices and dependency information.
+
+## Releases and Arch Linux
+
+Successful pushes to `main` automatically publish a tested release with a source
+archive and an x86_64 Arch Linux package. Download them from
+[GitHub Releases](https://github.com/codella/fretwave/releases).
+
+Automatic AUR publication is prepared and awaits the maintainer's one-time account
+setup. See [release automation](docs/releases.md) for setup and recovery steps.

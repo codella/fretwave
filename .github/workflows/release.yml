@@ -1,0 +1,55 @@
+name: Release and publish to AUR
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    steps:
+      - name: Install Arch build dependencies
+        run: pacman -Syu --noconfirm git github-cli openssh cmake ninja qt6-base qt6-declarative qt6-multimedia kirigami
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Prepare release source and Arch recipe
+        shell: bash
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          version="0.1.${GITHUB_RUN_NUMBER}"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          useradd --create-home builder
+          # makepkg must run as an unprivileged user.
+          chown -R builder:builder "$GITHUB_WORKSPACE"
+          runuser -u builder -- bash scripts/prepare-release.sh "$version" "$GITHUB_WORKSPACE/work/release"
+      - name: Build Arch package and run tests
+        shell: bash
+        run: |
+          cd work/release
+          runuser -u builder -- env QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software makepkg --noconfirm
+      - name: Publish GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v$VERSION"
+          # A rerun resumes uploads without creating another version.
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" --target "$GITHUB_SHA" --title "Fretwave $VERSION" --generate-notes --draft
+          fi
+          gh release upload "$tag" work/release/fretwave-"$VERSION".tar.gz work/release/*.pkg.tar.zst work/release/PKGBUILD work/release/.SRCINFO --clobber
+          gh release edit "$tag" --draft=false
+      - name: Publish AUR recipe
+        if: ${{ vars.AUR_ENABLED == 'true' }}
+        shell: bash
+        env:
+          AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+        run: bash scripts/publish-aur.sh work/release "$VERSION"
+      - name: AUR setup reminder
+        if: ${{ vars.AUR_ENABLED != 'true' }}
+        run: echo 'AUR publication is pending account setup. See docs/releases.md.' >> "$GITHUB_STEP_SUMMARY"
