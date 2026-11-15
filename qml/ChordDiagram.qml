@@ -34,6 +34,8 @@ Item {
         const stringIndex = Math.round((px - neckLeft) / stringSpacing)
         if (stringIndex < 0 || stringIndex > 5
             || Math.abs(px - neckLeft - stringIndex * stringSpacing) > 15) return null
+        if (Math.abs(py - (neckTop + neckHeight + 24)) <= 14)
+            return { stringIndex: stringIndex, fret: 0 }
         if (py >= neckTop - 35 && py <= neckTop - 10 && chord.frets[stringIndex] <= 0)
             return { stringIndex: stringIndex, fret: chord.frets[stringIndex] }
         for (let offset = 0; offset < 5; ++offset) {

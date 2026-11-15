@@ -37,10 +37,17 @@ void AudioEngine::stop() {
     m_buffer.close();
     setPlaying(false);
 }
+void AudioEngine::setMuted(bool value) {
+    if (m_muted == value) return;
+    m_muted = value;
+    if (m_muted) stop();
+    emit mutedChanged();
+}
 void AudioEngine::playNote(int midi) { play({midi}); }
 void AudioEngine::playChord(const QVariantList &frets) { play(Synth::chordNotes(frets), true); }
 void AudioEngine::play(const QList<int> &notes, bool chord) {
     stop();
+    if (m_muted) return;
     m_chordPlayback = chord;
     setError({});
     if (notes.isEmpty()) return;

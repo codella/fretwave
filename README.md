@@ -8,16 +8,16 @@ A native Qt6 / KDE Kirigami guitar chord browser written in C++ and QML, with of
 
 ## Features
 
-- 166 fingerings: 22 open shapes and 144 movable E-, A-, and D-shape barre voicings.
-- All 12 roots, with major, minor, dominant seventh, minor seventh, sus2, and sus4 qualities.
+- 191 fingerings: 23 open shapes and 168 movable voicings.
+- All 12 roots, with major, minor, dominant seventh, minor seventh, sus2, sus4, and add9 qualities.
 - “Focus chord” hides filters and the chord list and enlarges the diagram. Use “Show browser” or Escape to return without losing your selection.
 - Root and quality filters, alternate fingerings, finger numbers and barre diagrams.
 - Chord-tone names and interval formulas. Hover over Intervals to see each note, interval name and semitone distance from the root.
 - Hover over any string within a displayed fret to see its note and octave. Open/muted symbols show open-string pitches and distinguish strings muted in the selected chord.
 - System palette support, keyboard-accessible controls and accessible diagram descriptions.
 - Bundled Oswald display lettering and Lato body text, with Noto Sans available for symbol fallback. All fonts use the SIL Open Font License; see `fonts/Oswald-OFL.txt`, `fonts/Lato-OFL.txt`, and `fonts/OFL.txt`. Font sources: https://github.com/google/fonts/tree/main/ofl/oswald and https://github.com/google/fonts/tree/main/ofl/lato.
-- Offline plucked-string synthesis: click any string/fret or open marker to hear its note. Play chord sounds the current fingering with a gentle strum, excluding muted strings. Playback uses a moderate default level; adjust loudness with your system volume. A new sound replaces the previous sound, and Stop sound cuts playback.
-- Click the chromatic wheel to hear a single note (C4–B4). The circle of fifths plays a guitar chord: major by default, or minor with “Minor chord” selected. Both wheels start muted. The top-right speaker button mutes or unmutes previews on both wheels; note selection still works while muted.
+- Offline plucked-string synthesis: click any string/fret or open marker to hear its note. Play chord sounds the current fingering with a gentle strum, excluding muted strings. Playback uses a moderate default level; adjust loudness with the shared header volume slider. A new sound replaces the previous sound, and Stop sound cuts playback.
+- Click the chromatic wheel to hear a single note (C4–B4). The circle of fifths plays a guitar chord: major by default, or minor with “Minor chord” selected. The shared header speaker button mutes or unmutes all playback across tabs, retaining the selected volume. Note selection still works while muted.
 - Entirely offline, with no accounts or network services.
 
 ## Build and run
@@ -79,13 +79,13 @@ The notes line describes the complete chord formula. A voicing may omit its fift
 
 ## Current scope
 
-Three tabs: Chords, a chromatic Notes wheel, and the Circle of fifths. Both wheels let you select a root and optionally highlight major or minor chord tones. The chord browser has root and type filters, a list sorted by root and chord type, and an always-visible fingering diagram. All 166 fingerings are shown when the filters are set to “All”. Uses right-handed diagrams and standard tuning. No quiz, accounts, or saved progress. Audio uses a lightweight synth rather than guitar recordings. Higher barre shapes can reach fret 15.
+Three tabs: Chords, a chromatic Notes wheel, and the Circle of fifths. Both wheels let you select a root and optionally highlight major or minor chord tones. The Chords tab starts with an empty personal collection. Add chord opens a modal with root and type filters over all 191 fingerings. Add individual voicings, select them to see the diagram, or remove them from the collection. The collection is saved between launches. Uses right-handed diagrams and standard tuning. No quiz or accounts. Audio uses a lightweight synth rather than guitar recordings. Higher barre shapes can reach fret 15.
 
 ## Verification
 
 The audio-synthesis test checks chord voicings, muted strings, pitch, decay, and clipping at 44.1/48 kHz. `--audio-test` checks live output, retriggering, mute and stop.
 
-The chord-integrity test checks all voicings against their expected pitch classes, permits omission of the fifth in seventh chords, validates finger numbers and diagram bounds, and checks coverage and filtering for all 72 root/type combinations. The UI workflow check runs offscreen and checks filtering, full-library count, chord selection, tab switching, both wheel orders and minor chord tones. The application also supports `--smoke-test` and `--screenshot path.png` for visual inspection.
+The chord-integrity test checks all voicings against their expected pitch classes, permits omission of the fifth in seventh chords, validates finger numbers and diagram bounds, and checks coverage and filtering for all 84 root/type combinations. The UI workflow check runs offscreen and checks filtering, full-library count, chord selection, tab switching, both wheel orders and minor chord tones. The application also supports `--smoke-test` and `--screenshot path.png` for visual inspection.
 
 ## License
 
@@ -101,3 +101,7 @@ archive and an x86_64 Arch Linux package. Download them from
 [GitHub Releases](https://github.com/codella/fretwave/releases).
 
 See [release automation](docs/releases.md) for details.
+
+### Appearance
+
+Open **File → Settings…** (or press **Ctrl+,**) to choose **System**, **Light**, or **Dark**. System is the default and follows the desktop color scheme. Changes apply immediately and are remembered. Theme support requires KF6 ColorScheme (6.6+) and the Breeze color schemes (`kcolorscheme` and `breeze` on Arch).

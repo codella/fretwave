@@ -7,7 +7,7 @@ leave gaps. Rerunning a workflow uses the same version.
 
 Each release includes the source archive, an x86_64 Arch package, a debug package,
 and its `PKGBUILD`. The recipe downloads the exact release archive and verifies
-its SHA-256 checksum. All three tests run during package creation.
+its SHA-256 checksum. All four tests run during package creation.
 
 Publication uses GitHub's built-in, short-lived workflow token. No external
 publishing accounts or SSH keys are required.

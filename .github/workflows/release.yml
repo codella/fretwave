@@ -13,7 +13,7 @@ jobs:
     container: archlinux:base-devel
     steps:
       - name: Install Arch build dependencies
-        run: pacman -Syu --noconfirm git github-cli openssh cmake ninja qt6-base qt6-declarative qt6-multimedia kirigami
+        run: pacman -Syu --noconfirm git github-cli openssh cmake ninja qt6-base qt6-declarative qt6-multimedia kirigami kcolorscheme breeze
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false

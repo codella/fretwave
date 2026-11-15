@@ -5,13 +5,13 @@
 #include <algorithm>
 
 QStringList Chords::roots() const { return {"C", "Db", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"}; }
-QStringList Chords::qualities() const { return {"Major", "Minor", "Dominant 7", "Minor 7", "Sus2", "Sus4"}; }
+QStringList Chords::qualities() const { return {"Major", "Minor", "Dominant 7", "Minor 7", "Sus2", "Sus4", "Add9"}; }
 
 Chords::Chords(QObject *parent) : QObject(parent) {
-    const QStringList suffixes {"", "m", "7", "m7", "sus2", "sus4"};
-    const QStringList formulas {"1 · 3 · 5", "1 · ♭3 · 5", "1 · 3 · 5 · ♭7", "1 · ♭3 · 5 · ♭7", "1 · 2 · 5", "1 · 4 · 5"};
-    const QList<QList<int>> intervals {{0,4,7}, {0,3,7}, {0,4,7,10}, {0,3,7,10}, {0,2,7}, {0,5,7}};
-    const QList<QList<int>> degrees {{0,2,4}, {0,2,4}, {0,2,4,6}, {0,2,4,6}, {0,1,4}, {0,3,4}};
+    const QStringList suffixes {"", "m", "7", "m7", "sus2", "sus4", "add9"};
+    const QStringList formulas {"1 · 3 · 5", "1 · ♭3 · 5", "1 · 3 · 5 · ♭7", "1 · ♭3 · 5 · ♭7", "1 · 2 · 5", "1 · 4 · 5", "1 · 3 · 5 · 9"};
+    const QList<QList<int>> intervals {{0,4,7}, {0,3,7}, {0,4,7,10}, {0,3,7,10}, {0,2,7}, {0,5,7}, {0,4,7,14}};
+    const QList<QList<int>> degrees {{0,2,4}, {0,2,4}, {0,2,4,6}, {0,2,4,6}, {0,1,4}, {0,3,4}, {0,2,4,1}};
     auto add = [&](int root, int quality, const QString &shape, QList<int> frets, QList<int> fingers, int barre, int barreStart = -1) {
         QVariantList fretValues, fingerValues, pitchClasses;
         int first = 99;
@@ -34,13 +34,16 @@ Chords::Chords(QObject *parent) : QObject(parent) {
         QVariantList intervalDetails;
         const QStringList symbols = formulas[quality].split(" · ");
         const QMap<int, QString> intervalNames {{0,"Root"}, {2,"Major second"}, {3,"Minor third"},
-            {4,"Major third"}, {5,"Perfect fourth"}, {7,"Perfect fifth"}, {10,"Minor seventh"}};
+            {4,"Major third"}, {5,"Perfect fourth"}, {7,"Perfect fifth"}, {10,"Minor seventh"}, {14,"Major ninth"}};
         for (int i = 0; i < intervals[quality].size(); ++i) {
             int semitones = intervals[quality][i];
             intervalDetails << QVariantMap{{"symbol", symbols[i]}, {"note", notes[i]},
                 {"name", intervalNames[semitones]}, {"semitones", semitones}};
         }
-        m_chords << QVariantMap{{"id", QString::number(m_chords.size())}, {"name", roots()[root] + suffixes[quality]},
+        QStringList fretKey;
+        for (int fret : frets) fretKey << QString::number(fret);
+        const QString key = QString::number(root) + ":" + suffixes[quality] + ":" + fretKey.join(",");
+        m_chords << QVariantMap{{"key", key}, {"id", QString::number(m_chords.size())}, {"name", roots()[root] + suffixes[quality]},
             {"root", root}, {"quality", quality}, {"shape", shape}, {"frets", fretValues}, {"fingers", fingerValues},
             {"firstFret", *std::max_element(frets.begin(), frets.end()) <= 5 ? 1 : first}, {"barre", barre}, {"barreStart", barreStart >= 0 ? barreStart : (frets[0] < 0 ? 1 : 0)},
             {"intervalDetails", intervalDetails}, {"title", roots()[root] + " " + qualities()[quality].toLower()},
@@ -70,6 +73,7 @@ Chords::Chords(QObject *parent) : QObject(parent) {
     add(2,5,"Open D sus4",{-1,-1,0,2,3,3},{0,0,0,1,3,4},0);
     add(4,5,"Open E sus4",{0,2,2,2,0,0},{0,2,3,4,0,0},0);
     add(9,5,"Open A sus4",{-1,0,2,2,3,0},{0,0,1,2,3,0},0);
+    add(0,6,"Open C add9",{-1,3,2,0,3,3},{0,2,1,0,3,4},0);
     for (int r = 0; r < 12; ++r) {
         int e = (r - 4 + 12) % 12; if (!e) e = 12;
         int a = (r - 9 + 12) % 12; if (!a) a = 12;
@@ -86,6 +90,9 @@ Chords::Chords(QObject *parent) : QObject(parent) {
         add(r,4,"D-shape barre",{-1,-1,d,d+2,d+3,d},{0,0,1,3,4,1},d,2);
         add(r,5,"E-shape barre",{e,e+2,e+2,e+2,e,e},{1,2,3,4,1,1},e);
         add(r,5,"A-shape barre",{-1,a,a+2,a+2,a+3,a},{0,1,2,3,4,1},a);
+        add(r,6,"E-root add9",{e,-1,e+2,e+1,e,e+2},{1,0,3,2,1,4},e);
+        const int c = a < 4 ? a + 12 : a;
+        add(r,6,"C-shape add9",{-1,c,c-1,c-3,c,c},{0,3,2,1,4,4},c,4);
     }
 }
 QVariantList Chords::browse(int root, int quality) const {

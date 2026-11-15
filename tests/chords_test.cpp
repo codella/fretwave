@@ -12,14 +12,14 @@ int main(int argc, char **argv) {
     Chords library;
     auto fail = [](const QString &message) { fprintf(stderr, "%s\n", qPrintable(message)); return 1; };
     const auto all = library.browse(-1,-1);
-    if (all.size() != 166) return fail("Expected 166 fingerings");
+    if (all.size() != 191) return fail("Expected 191 fingerings");
     const QList<int> tuning {4,9,2,7,11,4};
     QSet<QString> ids;
     for (const auto &entry : all) {
         const auto chord = entry.toMap();
         const auto frets = chord["frets"].toList(), fingers = chord["fingers"].toList();
         const auto details = chord["intervalDetails"].toList();
-        const QList<QList<int>> expectedIntervals {{0,4,7}, {0,3,7}, {0,4,7,10}, {0,3,7,10}, {0,2,7}, {0,5,7}};
+        const QList<QList<int>> expectedIntervals {{0,4,7}, {0,3,7}, {0,4,7,10}, {0,3,7,10}, {0,2,7}, {0,5,7}, {0,4,7,14}};
         const auto expectedDistances = expectedIntervals[chord["quality"].toInt()];
         if (details.size() != expectedDistances.size()) return fail("Missing interval explanation");
         const auto spelledNotes = chord["notes"].toString().split(" · ");
@@ -51,6 +51,13 @@ int main(int argc, char **argv) {
             if (chord["formula"].toString() != (quality == 4 ? "1 · 2 · 5" : "1 · 4 · 5")) return fail("Incorrect suspended formula");
         }
     }
+    for (const auto &entry : library.browse(0,6)) {
+        const auto chord = entry.toMap();
+        if (chord["notes"].toString() != "C · E · G · D"
+            || chord["formula"].toString() != "1 · 3 · 5 · 9"
+            || chord["intervalDetails"].toList().last().toMap()["name"].toString() != "Major ninth")
+            return fail("Incorrect add9 spelling or formula");
+    }
     if (ids.size() != all.size()) return fail("Duplicate ids");
     for (int r=0; r<12; ++r) for (int q=0; q<library.qualities().size(); ++q) {
         auto pool = library.browse(r,q);
@@ -61,6 +68,6 @@ int main(int argc, char **argv) {
         }
     }
     if (!library.browse(99,99).isEmpty()) return fail("Invalid filter handling");
-    qInfo() << "All 166 fingerings and 72 chord filters verified.";
+    qInfo() << "All 191 fingerings and 84 chord filters verified.";
     return 0;
 }

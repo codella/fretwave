@@ -4,104 +4,24 @@
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
+import QtQuick.Templates as T
 import org.kde.kirigami as Kirigami
 
 ColumnLayout {
     id: wheel
     property bool fifths: false
-    property bool muted: true
-    signal muteToggled()
     signal noteRequested(int midi)
     signal chordRequested(var frets)
     property int selectedNote: 9
-    property int chordType: chordSelector.currentIndex - (fifths ? 0 : 1)
+    property int chordType: fifths ? 0 : -1
     readonly property var labels: ["C", "C♯ / D♭", "D", "D♯ / E♭", "E", "F", "F♯ / G♭", "G", "G♯ / A♭", "A", "A♯ / B♭", "B"]
+    readonly property var solfege: ["Do", "Do♯ / Re♭", "Re", "Re♯ / Mi♭", "Mi", "Fa", "Fa♯ / Sol♭", "Sol", "Sol♯ / La♭", "La", "La♯ / Si♭", "Si"]
     readonly property var selectedChord: chordLibrary.browse(selectedNote, chordType < 0 ? 0 : chordType)[0]
     function noteAt(position) { return (9 + position * (fifths ? 7 : 1)) % 12 }
     function isChordTone(note) {
         return chordType >= 0 && selectedChord.pitchClasses.indexOf(note) >= 0
     }
     spacing: 12
-    Item {
-        Layout.fillWidth: true
-        implicitHeight: 40
-        RowLayout {
-            anchors.centerIn: parent
-            QQC2.Label { text: "Show" }
-            QQC2.ComboBox {
-                id: chordSelector
-                model: wheel.fifths ? ["Major chord", "Minor chord"]
-                    : ["Notes only", "Major chord", "Minor chord"]
-                Accessible.name: "Highlight chord tones"
-            }
-        }
-        QQC2.ToolButton {
-            id: muteButton
-            objectName: "wheelMuteButton"
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            width: 40
-            height: 40
-            padding: 10
-            hoverEnabled: true
-            text: wheel.muted ? "Unmute wheel playback" : "Mute wheel playback"
-            Accessible.name: text
-            onClicked: wheel.muteToggled()
-            contentItem: Canvas {
-                property bool muted: wheel.muted
-                property color ink: wheel.muted ? Kirigami.Theme.disabledTextColor : Kirigami.Theme.textColor
-                onMutedChanged: requestPaint()
-                onInkChanged: requestPaint()
-                onWidthChanged: requestPaint()
-                onHeightChanged: requestPaint()
-                onPaint: {
-                    const c = getContext("2d"); c.reset()
-                    c.scale(width / 24, height / 24)
-                    c.fillStyle = ink; c.strokeStyle = ink
-                    c.lineWidth = 1.7; c.lineCap = "round"; c.lineJoin = "round"
-                    c.beginPath(); c.moveTo(3, 9); c.lineTo(7, 9)
-                    c.lineTo(12, 5); c.lineTo(12, 19); c.lineTo(7, 15)
-                    c.lineTo(3, 15); c.closePath(); c.fill()
-                    if (muted) {
-                        c.beginPath(); c.moveTo(16, 9); c.lineTo(22, 15)
-                        c.moveTo(22, 9); c.lineTo(16, 15); c.stroke()
-                    } else {
-                        for (let r of [5, 9]) {
-                            c.beginPath(); c.arc(12, 12, r, -0.75, 0.75); c.stroke()
-                        }
-                    }
-                }
-            }
-            background: Rectangle {
-                radius: 10
-                color: Qt.alpha(Kirigami.Theme.highlightColor,
-                    muteButton.down ? 0.22 : muteButton.hovered ? 0.16 : 0.04)
-                border.width: muteButton.visualFocus ? 2 : 1
-                border.color: muteButton.visualFocus ? Kirigami.Theme.highlightColor : Qt.alpha(Kirigami.Theme.textColor, 0.10)
-                Behavior on color { ColorAnimation { duration: 120 } }
-            }
-            QQC2.ToolTip {
-                text: muteButton.text
-                visible: muteButton.hovered
-                delay: 400
-                x: muteButton.width - implicitWidth
-                y: muteButton.height + 8
-                horizontalPadding: 14
-                verticalPadding: 8
-                contentItem: QQC2.Label {
-                    text: muteButton.text
-                    font.family: appFontFamily
-                    font.pointSize: 10
-                    color: "#f7f8fa"
-                }
-                background: Rectangle {
-                    radius: height / 2
-                    color: "#272b33"
-                    border.color: "#454b57"
-                }
-            }
-        }
-    }
     Item {
         Layout.fillWidth: true
         Layout.fillHeight: true
@@ -140,7 +60,7 @@ ColumnLayout {
                     Accessible.name: text + (note === wheel.selectedNote ? ", selected root" : "")
                     onClicked: {
                         wheel.selectedNote = note
-                        if (!wheel.muted) {
+                        if (!audioEngine.muted) {
                             if (wheel.fifths) wheel.chordRequested(wheel.selectedChord.frets)
                             else wheel.noteRequested(60 + note)
                         }
@@ -162,6 +82,13 @@ ColumnLayout {
                     font.family: displayFontFamily
                     font.pointSize: 36
                     font.weight: Font.Medium
+                }
+                QQC2.Label {
+                    Layout.alignment: Qt.AlignHCenter
+                    text: wheel.solfege[wheel.selectedNote]
+                    font.family: appFontFamily
+                    font.pointSize: 16
+                    opacity: 0.75
                 }
                 QQC2.Label {
                     Layout.alignment: Qt.AlignHCenter

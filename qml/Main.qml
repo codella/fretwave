@@ -16,22 +16,54 @@ Kirigami.ApplicationWindow {
     font.family: appFontFamily
     font.pointSize: 11
     title: "Fretwave"
+    palette: appSettings.palette
     pageStack.globalToolBar.style: Kirigami.ApplicationHeaderStyle.None
     property bool focusMode: false
-    property bool wheelMuted: true
-    function toggleWheelMute() {
-        wheelMuted = !wheelMuted
-        if (wheelMuted) audioEngine.stop()
-    }
     Shortcut { sequence: "Escape"; enabled: root.focusMode; onActivated: root.focusMode = false }
-    property var results: []
+    readonly property var results: chordLibrary.browse(-1, -1).filter(chord => appSettings.favoriteKeys.indexOf(chord.key) >= 0)
     property var selected: null
-    function refresh() {
-        results = chordLibrary.browse(rootFilter.currentIndex - 1, typeFilter.currentIndex - 1)
-        chordList.currentIndex = 0
-        selected = results.length ? results[0] : null
+    function selectSaved(index) {
+        chordList.currentIndex = index
+        selected = index >= 0 && index < results.length ? results[index] : null
+        if (!selected) root.focusMode = false
     }
-    Component.onCompleted: refresh()
+    function addChord(chord) {
+        if (appSettings.favoriteKeys.indexOf(chord.key) < 0)
+            appSettings.favoriteKeys = appSettings.favoriteKeys.concat([chord.key])
+        selectSaved(results.findIndex(item => item.key === chord.key))
+    }
+    function removeSelected() {
+        if (!selected) return
+        const key = selected.key
+        const index = chordList.currentIndex
+        audioEngine.stop()
+        appSettings.favoriteKeys = appSettings.favoriteKeys.filter(item => item !== key)
+        selectSaved(Math.min(index, results.length - 1))
+    }
+    Component.onCompleted: selectSaved(results.length ? 0 : -1)
+    AddChordDialog {
+        id: addChordDialog
+        parent: QQC2.Overlay.overlay
+        anchors.centerIn: parent
+        onChordAdded: chord => root.addChord(chord)
+    }
+    menuBar: QQC2.MenuBar {
+        QQC2.Menu {
+            title: "&File"
+            QQC2.MenuItem {
+                action: QQC2.Action {
+                    text: "Settings…"
+                    shortcut: "Ctrl+,"
+                    onTriggered: settingsDialog.open()
+                }
+            }
+        }
+    }
+    SettingsDialog {
+        id: settingsDialog
+        parent: QQC2.Overlay.overlay
+        anchors.centerIn: parent
+    }
     pageStack.initialPage: Kirigami.Page {
         ColumnLayout {
             anchors.fill: parent
@@ -90,6 +122,106 @@ Kirigami.ApplicationWindow {
                 NavigationTab { text: "Notes wheel" }
                 NavigationTab { text: "Circle of fifths" }
             }
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 40
+                spacing: 12
+                RowLayout {
+                    visible: tabs.currentIndex === 0
+                    spacing: 12
+                    QQC2.Label { text: "My chords"; font.weight: Font.Medium }
+                    QQC2.Label { text: root.results.length; opacity: 0.6 }
+                    ActionButton { highlighted: true; text: "Add chord…"; onClicked: addChordDialog.open() }
+                    ActionButton { text: "Remove"; enabled: root.selected !== null; onClicked: root.removeSelected() }
+                }
+                WheelSelector {
+                    id: notesSelector
+                    visible: tabs.currentIndex === 1
+                }
+                WheelSelector {
+                    id: fifthsSelector
+                    fifths: true
+                    visible: tabs.currentIndex === 2
+                }
+                Item { Layout.fillWidth: true }
+                QQC2.ToolButton {
+                    id: muteButton
+                    objectName: "muteButton"
+                    Layout.preferredWidth: 40
+                    Layout.preferredHeight: 40
+                    padding: 10
+                    hoverEnabled: true
+                    text: audioEngine.muted ? "Unmute playback" : "Mute playback"
+                    Accessible.name: text
+                    onClicked: audioEngine.muted = !audioEngine.muted
+                    contentItem: Canvas {
+                        property bool muted: audioEngine.muted
+                        property color ink: audioEngine.muted ? Kirigami.Theme.disabledTextColor : Kirigami.Theme.textColor
+                        onMutedChanged: requestPaint()
+                        onInkChanged: requestPaint()
+                        onWidthChanged: requestPaint()
+                        onHeightChanged: requestPaint()
+                        onPaint: {
+                            const c = getContext("2d"); c.reset()
+                            c.scale(width / 24, height / 24)
+                            c.fillStyle = ink; c.strokeStyle = ink
+                            c.lineWidth = 1.7; c.lineCap = "round"; c.lineJoin = "round"
+                            c.beginPath(); c.moveTo(3, 9); c.lineTo(7, 9)
+                            c.lineTo(12, 5); c.lineTo(12, 19); c.lineTo(7, 15)
+                            c.lineTo(3, 15); c.closePath(); c.fill()
+                            if (muted) {
+                                c.beginPath(); c.moveTo(16, 9); c.lineTo(22, 15)
+                                c.moveTo(22, 9); c.lineTo(16, 15); c.stroke()
+                            } else {
+                                for (let r of [5, 9]) {
+                                    c.beginPath(); c.arc(12, 12, r, -0.75, 0.75); c.stroke()
+                                }
+                            }
+                        }
+                    }
+                    background: Rectangle {
+                        radius: 10
+                        color: Qt.alpha(Kirigami.Theme.highlightColor,
+                            muteButton.down ? 0.22 : muteButton.hovered ? 0.16 : 0.04)
+                        border.width: muteButton.visualFocus ? 2 : 1
+                        border.color: muteButton.visualFocus ? Kirigami.Theme.highlightColor : Qt.alpha(Kirigami.Theme.textColor, 0.10)
+                        Behavior on color { ColorAnimation { duration: 120 } }
+                    }
+                    QQC2.ToolTip {
+                        text: muteButton.text
+                        visible: muteButton.hovered
+                        delay: 400
+                        x: muteButton.width - implicitWidth
+                        y: muteButton.height + 8
+                        horizontalPadding: 14
+                        verticalPadding: 8
+                        contentItem: QQC2.Label {
+                            text: muteButton.text
+                            font.family: appFontFamily
+                            font.pointSize: 10
+                            color: "#f7f8fa"
+                        }
+                        background: Rectangle {
+                            radius: height / 2
+                            color: "#272b33"
+                            border.color: "#454b57"
+                        }
+                    }
+                }
+                QQC2.Slider {
+                    id: volumeSlider
+                    objectName: "volumeSlider"
+                    Layout.preferredWidth: 120
+                    from: 0
+                    to: 1
+                    stepSize: 0.01
+                    value: audioEngine.volume
+                    Accessible.name: "Playback volume"
+                    onMoved: audioEngine.volume = value
+                    QQC2.ToolTip.visible: hovered || pressed
+                    QQC2.ToolTip.text: Math.round(value * 100) + "%"
+                }
+            }
             StackLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -98,20 +230,10 @@ Kirigami.ApplicationWindow {
                     spacing: 16
             RowLayout {
                 Layout.fillWidth: true
-                visible: !root.focusMode
-                spacing: 12
-                QQC2.Label { text: "Root"; font.weight: Font.Medium; opacity: 0.7 }
-                QQC2.ComboBox { id: rootFilter; implicitHeight: 36; objectName: "rootFilter"; model: ["All roots"].concat(chordLibrary.roots); Accessible.name: "Root note"; onActivated: root.refresh() }
-                QQC2.Label { text: "Type"; font.weight: Font.Medium; opacity: 0.7 }
-                QQC2.ComboBox { id: typeFilter; implicitHeight: 36; objectName: "typeFilter"; model: ["All types"].concat(chordLibrary.qualities); Accessible.name: "Chord type"; onActivated: root.refresh() }
-                Item { Layout.fillWidth: true }
-            }
-            RowLayout {
-                Layout.fillWidth: true
                 Layout.fillHeight: true
                 spacing: 24
                 QQC2.ScrollView {
-                    visible: !root.focusMode
+                    visible: !root.focusMode && root.results.length > 0
                     Layout.preferredWidth: 240
                     Layout.fillHeight: true
                     clip: true
@@ -173,8 +295,8 @@ Kirigami.ApplicationWindow {
                     ColumnLayout {
                         anchors.fill: parent
                         spacing: 8
-                        Kirigami.Heading { Layout.alignment: Qt.AlignHCenter; text: root.selected ? root.selected.name : "No chords"; font.family: displayFontFamily; font.pointSize: 40; font.weight: Font.Medium }
-                        QQC2.Label { Layout.alignment: Qt.AlignHCenter; text: root.selected ? root.selected.shape : ""; opacity: 0.65 }
+                        Kirigami.Heading { visible: root.selected !== null; Layout.alignment: Qt.AlignHCenter; text: root.selected ? root.selected.name : "Your chords start here"; font.family: displayFontFamily; font.pointSize: root.selected ? 40 : 26; font.weight: Font.Medium }
+                        QQC2.Label { visible: root.selected !== null; Layout.alignment: Qt.AlignHCenter; text: root.selected ? root.selected.shape : "Add a chord to build your personal collection."; opacity: 0.65 }
                         QQC2.Label {
                             visible: audioEngine.error.length > 0
                             text: audioEngine.error
@@ -188,6 +310,14 @@ Kirigami.ApplicationWindow {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
                             Layout.minimumHeight: 370
+                            ColumnLayout {
+                                anchors.centerIn: parent
+                                visible: !root.selected
+                                spacing: 16
+                                QQC2.Label { Layout.alignment: Qt.AlignHCenter; text: "Your chords start here"; font.family: displayFontFamily; font.pointSize: 28 }
+                                QQC2.Label { Layout.alignment: Qt.AlignHCenter; text: "Keep the voicings you want to play."; opacity: 0.65 }
+                                ActionButton { highlighted: true; Layout.alignment: Qt.AlignHCenter; text: "Add your first chord…"; onClicked: addChordDialog.open() }
+                            }
                             ChordDiagram {
                                 anchors.centerIn: parent
                                 zoom: root.focusMode ? Math.min(parent.width / 360, parent.height / 390, 1.5) : 1
@@ -262,19 +392,23 @@ Kirigami.ApplicationWindow {
                             }
                         }
                     }
-                    QQC2.ToolButton {
-                        id: playButton
-                        objectName: "playChordButton"
+                    Item {
                         anchors.top: parent.top
                         anchors.left: parent.left
                         width: 40
                         height: 40
+                    QQC2.ToolButton {
+                        id: playButton
+                        objectName: "playChordButton"
+                        visible: root.selected !== null
+                        anchors.fill: parent
                         padding: 11
                         hoverEnabled: true
                         text: audioEngine.chordPlaying ? "Stop chord" : "Play chord"
-                        enabled: root.selected !== null && (!audioEngine.playing || audioEngine.chordPlaying)
+                        enabled: !audioEngine.muted && root.selected !== null && (!audioEngine.playing || audioEngine.chordPlaying)
                         opacity: enabled ? 1 : 0.4
                         Accessible.name: text
+                        Accessible.description: audioEngine.muted ? "Playback is muted. Unmute in the header to play chords." : ""
                         onClicked: audioEngine.chordPlaying ? audioEngine.stop() : audioEngine.playChord(root.selected.frets)
                         contentItem: Canvas {
                             property bool playing: audioEngine.chordPlaying
@@ -302,10 +436,19 @@ Kirigami.ApplicationWindow {
                             border.color: playButton.visualFocus ? Kirigami.Theme.highlightColor : Qt.alpha(Kirigami.Theme.textColor, 0.10)
                             Behavior on color { ColorAnimation { duration: 120 } }
                         }
+                    }
+                        MouseArea {
+                            id: mutedPlaybackHover
+                            anchors.fill: parent
+                            enabled: audioEngine.muted
+                            hoverEnabled: true
+                            acceptedButtons: Qt.NoButton
+                        }
                         QQC2.ToolTip {
                             id: playbackTip
-                            text: playButton.text
-                            visible: playButton.hovered
+                            objectName: "playbackTooltip"
+                            text: audioEngine.muted ? "Playback is muted. Unmute in the header to play chords." : playButton.text
+                            visible: playButton.hovered || mutedPlaybackHover.containsMouse
                             delay: 400
                             timeout: -1
                             x: 0
@@ -349,12 +492,14 @@ Kirigami.ApplicationWindow {
                     QQC2.ToolButton {
                         id: focusToggle
                         objectName: "focusToggle"
+                        visible: root.selected !== null
                         anchors.top: parent.top
                         anchors.right: parent.right
                         width: 40
                         height: 40
                         padding: 10
                         hoverEnabled: true
+                        enabled: root.selected !== null
                         text: root.focusMode ? "Show browser" : "Focus chord"
                         Accessible.name: text
                         onClicked: root.focusMode = !root.focusMode
@@ -404,16 +549,14 @@ Kirigami.ApplicationWindow {
                 }
                 NotesWheel {
                     objectName: "chromaticWheel"
-                    muted: root.wheelMuted
-                    onMuteToggled: root.toggleWheelMute()
+                    chordType: notesSelector.currentIndex - 1
                     onNoteRequested: midi => audioEngine.playNote(midi)
                 }
                 NotesWheel {
                     objectName: "fifthsWheel"
+                    chordType: fifthsSelector.currentIndex
                     fifths: true
                     onChordRequested: frets => audioEngine.playChord(frets)
-                    muted: root.wheelMuted
-                    onMuteToggled: root.toggleWheelMute()
                     onNoteRequested: midi => audioEngine.playNote(midi)
                 }
             }

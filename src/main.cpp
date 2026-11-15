@@ -11,16 +11,18 @@
 #include <QMouseEvent>
 #include <QEventLoop>
 #include <QTimer>
+#include <QTemporaryDir>
 #include <QJSValue>
 #include <cstdio>
 #include "chords.h"
+#include "appsettings.h"
 #include "audioengine.h"
 
 int main(int argc, char **argv) {
     QApplication app(argc, argv);
     app.setApplicationName("fretwave");
     app.setApplicationDisplayName("Fretwave");
-    app.setOrganizationName("Fretwave");
+    app.setOrganizationName("fretwave");
     app.setDesktopFileName("io.github.codella.fretwave");
     app.setWindowIcon(QIcon(":/icons/fretwave-256.png"));
     for (const QString &file : {QStringLiteral("NotoSans-Regular.ttf"), QStringLiteral("Lato-Regular.ttf"), QStringLiteral("Lato-Bold.ttf"), QStringLiteral("Oswald.ttf")}) {
@@ -32,15 +34,31 @@ int main(int argc, char **argv) {
     QFont interfaceFont(QStringLiteral("Lato"));
     interfaceFont.setPointSize(11);
     app.setFont(interfaceFont);
+    QTemporaryDir testSettings;
+    if (app.arguments().contains("--verify-ui")) {
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, testSettings.path());
+    }
+    AppSettings settings;
     Chords chords;
     AudioEngine audioEngine;
     QQmlApplicationEngine engine;
+    engine.rootContext()->setContextProperty("appSettings", &settings);
     engine.rootContext()->setContextProperty("chordLibrary", &chords);
     engine.rootContext()->setContextProperty("audioEngine", &audioEngine);
     engine.rootContext()->setContextProperty("appFontFamily", interfaceFont.family());
     engine.rootContext()->setContextProperty("displayFontFamily", QStringLiteral("Oswald"));
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app, [] { QCoreApplication::exit(1); }, Qt::QueuedConnection);
     engine.loadFromModule("Fretwave", "Main");
+    settings.apply();
+    if (app.arguments().contains("--add-chord") && !engine.rootObjects().isEmpty()) {
+        if (auto dialog = engine.rootObjects().first()->findChild<QObject *>("addChordDialog"))
+            QMetaObject::invokeMethod(dialog, "open");
+    }
+    if (app.arguments().contains("--settings") && !engine.rootObjects().isEmpty()) {
+        if (auto dialog = engine.rootObjects().first()->findChild<QObject *>("settingsDialog"))
+            QMetaObject::invokeMethod(dialog, "open");
+    }
     if (app.arguments().contains("--audio-test")) {
         QTimer::singleShot(200, &app, [&] {
             audioEngine.playNote(45);
@@ -81,26 +99,65 @@ int main(int argc, char **argv) {
             auto typeFilter = window->findChild<QObject *>("typeFilter");
             auto list = window->findChild<QObject *>("chordList");
             ok = rootFilter && typeFilter && list;
+            auto picker = window->findChild<QObject *>("addChordDialog");
+            ok &= picker && list->property("count").toInt() == 0;
+            const auto firstChord = chords.browse(0, 0).first();
+            QMetaObject::invokeMethod(window, "addChord", Q_ARG(QVariant, firstChord));
+            QMetaObject::invokeMethod(window, "addChord", Q_ARG(QVariant, firstChord));
+            ok &= list->property("count").toInt() == 1 && settings.favoriteKeys().size() == 1;
+            QMetaObject::invokeMethod(window, "removeSelected");
+            ok &= list->property("count").toInt() == 0 && settings.favoriteKeys().isEmpty();
+            QStringList allKeys;
+            for (const auto &entry : chords.browse(-1, -1)) allKeys << entry.toMap()["key"].toString();
+            settings.setFavoriteKeys(allKeys);
+            QMetaObject::invokeMethod(window, "selectSaved", Q_ARG(QVariant, QVariant(0)));
+            QEventLoop collectionLayoutWait;
+            QTimer::singleShot(100, &collectionLayoutWait, &QEventLoop::quit);
+            collectionLayoutWait.exec();
+            const auto volume = audioEngine.volume();
+            audioEngine.setMuted(true);
+            auto playButton = window->findChild<QQuickItem *>("playChordButton");
+            ok &= playButton && !playButton->isEnabled();
+            if (playButton) {
+                auto quickWindow = playButton->window();
+                auto position = playButton->mapToScene(QPointF(20, 20));
+                QMouseEvent move(QEvent::MouseMove, position, quickWindow->mapToGlobal(position),
+                    Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+                QCoreApplication::sendEvent(quickWindow, &move);
+                QEventLoop hoverWait;
+                QTimer::singleShot(500, &hoverWait, &QEventLoop::quit);
+                hoverWait.exec();
+                auto tip = window->findChild<QObject *>("playbackTooltip");
+                ok &= tip && tip->property("visible").toBool()
+                    && tip->property("text").toString().contains("Unmute in the header");
+            }
+            audioEngine.playNote(60);
+            ok &= audioEngine.muted() && !audioEngine.playing() && audioEngine.error().isEmpty();
+            audioEngine.playChord({-1,3,2,0,1,0});
+            ok &= !audioEngine.playing();
+            audioEngine.setMuted(false);
+            ok &= playButton && playButton->isEnabled();
+            ok &= !audioEngine.muted() && audioEngine.volume() == volume;
             if (ok) {
                 rootFilter->setProperty("currentIndex", 6); // F
                 typeFilter->setProperty("currentIndex", 2); // minor
-                QMetaObject::invokeMethod(window, "refresh");
-                auto selection = window->property("selected");
+                QCoreApplication::processEvents();
+                auto selection = picker->property("selected");
                 auto selected = selection.canConvert<QJSValue>() ? selection.value<QJSValue>().toVariant().toMap() : selection.toMap();
                 ok &= selected["name"].toString() == "Fm";
-                for (int type : {5, 6}) {
+                for (int type : {5, 6, 7}) {
                     rootFilter->setProperty("currentIndex", 1); // C
                     typeFilter->setProperty("currentIndex", type);
-                    QMetaObject::invokeMethod(window, "refresh");
-                    auto value = window->property("selected");
+                    QCoreApplication::processEvents();
+                    auto value = picker->property("selected");
                     auto chord = value.canConvert<QJSValue>() ? value.value<QJSValue>().toVariant().toMap() : value.toMap();
-                    ok &= chord["name"].toString() == (type == 5 ? "Csus2" : "Csus4");
+                    ok &= chord["name"].toString() == (type == 5 ? "Csus2" : type == 6 ? "Csus4" : "Cadd9");
                 }
                 rootFilter->setProperty("currentIndex", 0);
                 typeFilter->setProperty("currentIndex", 0);
-                QMetaObject::invokeMethod(window, "refresh");
-                ok &= list->property("count").toInt() == 166;
-                list->setProperty("currentIndex", 165);
+                QCoreApplication::processEvents();
+                ok &= list->property("count").toInt() == 191;
+                list->setProperty("currentIndex", 188);
                 auto value = window->property("selected");
                 auto chord = value.canConvert<QJSValue>() ? value.value<QJSValue>().toVariant().toMap() : value.toMap();
                 ok &= chord["name"].toString() == "Bsus4";
@@ -108,6 +165,10 @@ int main(int argc, char **argv) {
                 ok &= tabs != nullptr;
                 for (int tab = 1; tabs && tab <= 2; ++tab) {
                     tabs->setProperty("currentIndex", tab);
+                    auto mute = window->findChild<QObject *>("muteButton");
+                    auto volumeControl = window->findChild<QObject *>("volumeSlider");
+                    ok &= mute && mute->property("visible").toBool()
+                        && volumeControl && volumeControl->property("visible").toBool();
                     auto wheel = window->findChild<QObject *>(tab == 1 ? "chromaticWheel" : "fifthsWheel");
                     ok &= wheel != nullptr;
                     if (!wheel) continue;
@@ -123,12 +184,12 @@ int main(int argc, char **argv) {
                     ok &= triad["notes"].toString() == "A · C · E";
                 }
                 if (tabs) tabs->setProperty("currentIndex", 0);
-                ok &= list->property("currentIndex").toInt() == 165;
+                ok &= list->property("currentIndex").toInt() == 188;
                 window->setProperty("focusMode", true);
-                ok &= !list->property("visible").toBool() && !rootFilter->property("visible").toBool();
-                ok &= list->property("currentIndex").toInt() == 165;
+                ok &= !list->property("visible").toBool();
+                ok &= list->property("currentIndex").toInt() == 188;
                 window->setProperty("focusMode", false);
-                ok &= list->property("visible").toBool() && rootFilter->property("visible").toBool();
+                ok &= list->property("visible").toBool();
                 auto diagram = window->findChild<QObject *>("chordDiagram");
                 ok &= diagram != nullptr;
                 if (diagram) {
@@ -161,8 +222,21 @@ int main(int argc, char **argv) {
                     ok &= invoke("tooltipAt", left, 21).startsWith("Muted in this chord");
                     ok &= invoke("tooltipAt", -10, center(2)).isEmpty();
                     ok &= invoke("tooltipAt", left, 389).isEmpty();
-                    list->setProperty("currentIndex", 165); // Bsus4, E-shape at fret 7
+                    const int openMidi[] {40, 45, 50, 55, 59, 64};
+                    auto checkStringLabels = [&](double zoom) {
+                        const double labelY = diagram->property("neckTop").toDouble()
+                            + diagram->property("neckHeight").toDouble() + 24;
+                        for (int string = 0; string < 6; ++string) {
+                            const double x = (diagram->property("neckLeft").toDouble()
+                                + string * diagram->property("stringSpacing").toDouble()) * zoom;
+                            ok &= invoke("midiAt", x, labelY * zoom).toInt() == openMidi[string];
+                            ok &= invoke("tooltipAt", x, labelY * zoom) == openNotes[string];
+                        }
+                    };
+                    checkStringLabels(1);
+                    list->setProperty("currentIndex", 188); // Bsus4, E-shape at fret 7
                     ok &= invoke("tooltipAt", left, center(0)) == "B2";
+                    checkStringLabels(1);
                     list->setProperty("currentIndex", 0);
                     if (auto item = qobject_cast<QQuickItem *>(diagram)) {
                         auto quickWindow = item->window();
@@ -185,6 +259,7 @@ int main(int argc, char **argv) {
                         focusWait.exec();
                         const double zoom = diagram->property("zoom").toDouble();
                         ok &= zoom > 1 && diagram->property("scale").toDouble() == 1;
+                        checkStringLabels(zoom);
                         left = diagram->property("neckLeft").toDouble();
                         dx = diagram->property("stringSpacing").toDouble();
                         ok &= invoke("tooltipAt", (left + dx) * zoom, center(2) * zoom) == "C3";
@@ -209,9 +284,7 @@ int main(int argc, char **argv) {
                                 && explanation.contains("3 → E: Major third · 4 semitones");
                             if (capture >= 0 && capture + 1 < app.arguments().size())
                                 quickWindow->grabWindow().save(app.arguments()[capture + 1]);
-                            rootFilter->setProperty("currentIndex", 1);
-                            typeFilter->setProperty("currentIndex", 2);
-                            QMetaObject::invokeMethod(window, "refresh");
+                            list->setProperty("currentIndex", 3); // First C minor voicing
                             ok &= intervalTip->property("text").toString().contains("♭3 → Eb: Minor third · 3 semitones");
                         }
                     } else { ok = false; }

@@ -11,6 +11,7 @@
 class AudioEngine : public QObject {
     Q_OBJECT
     Q_PROPERTY(qreal volume READ volume WRITE setVolume NOTIFY volumeChanged)
+    Q_PROPERTY(bool muted READ muted WRITE setMuted NOTIFY mutedChanged)
     Q_PROPERTY(bool playing READ playing NOTIFY playingChanged)
     Q_PROPERTY(bool chordPlaying READ chordPlaying NOTIFY playingChanged)
     Q_PROPERTY(QString error READ error NOTIFY errorChanged)
@@ -22,11 +23,14 @@ public:
     bool chordPlaying() const { return m_playing && m_chordPlayback; }
     QString error() const { return m_error; }
     void setVolume(qreal value);
+    bool muted() const { return m_muted; }
+    void setMuted(bool value);
     Q_INVOKABLE void playNote(int midi);
     Q_INVOKABLE void playChord(const QVariantList &frets);
     Q_INVOKABLE void stop();
 signals:
     void volumeChanged();
+    void mutedChanged();
     void playingChanged();
     void errorChanged();
 private:
@@ -34,6 +38,7 @@ private:
     void setPlaying(bool playing);
     void setError(const QString &message);
     qreal m_volume = 0.6;
+    bool m_muted = false;
     bool m_playing = false;
     bool m_chordPlayback = false;
     QString m_error;
